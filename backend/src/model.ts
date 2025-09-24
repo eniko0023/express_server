@@ -39,24 +39,44 @@ export const removeUser = async (id: number) => {
 
 export const modifiedUser = async (id: number, user: Partial<User>) => {
     let currentUser;
-    const [rows] = await pool.query<mysql.RowDataPacket[]>("SELECT * from users WHERE id = ?", {id})
-    if (rows.length > 0){
-        currentUser = rows[0];
-        console.log(currentUser, typeof currentUser);
-    }
-    const updatedUser = {
+    const [rows] = await pool.query<mysql.RowDataPacket[]>("SELECT * from users WHERE id = ?", [id]);
+    currentUser = rows[0] ?? null;
+    if (!currentUser) return false;
+    else {
+        const updatedUser = {
         id: id,
         nev: user.nev ?? currentUser!.nev,
         cim: user.cim ?? currentUser!.cim,
         szuletesiDatum: user.szuletesiDatum ?? currentUser!.szuletesiDatum
-    }
+    } 
 
     const [result] = await pool.query<mysql.ResultSetHeader>("UPDATE users SET nev = ?, cim = ?, szuletesiDatum = ? WHERE id = ?", [updatedUser.nev, updatedUser.cim, updatedUser.szuletesiDatum, id]);
-    // ????
     return result.affectedRows > 0;
+    }   
 }
 
-export const getUserById = async (id: number) =>{
-    const [rows] = await pool.query<mysql.RowDataPacket[]>("SELECT * FROM users WHERE id = ?", {id});
+export const getUserById = async (id: number) => {
+    const [rows] = await pool.query<mysql.RowDataPacket[]>("SELECT * FROM users WHERE id=?", [id]);
+    // Ha nincs user, akkor null ad vissza! A controller-ben úgy kezelem, hogy if (!user) akkor 404-es hibkód...
+    return rows[0] ?? null;
+}
+
+export const modifiedFullUser = async (uId:number, uData: User) =>{
+    let [result] = await pool.query<mysql.ResultSetHeader>("UPDATE users SET nev = ?, cim = ?, szuletesiDatum = ? WHERE  id= ?", [uData.nev, uData.cim, uData.szuletesiDatum, uId]);
+    if (result.affectedRows === 0){
+        [result] = await pool.query<mysql.ResultSetHeader>("INSERT INTO users (nev, cim, szuletesiDatum) VALUES (?,?,?)", 
+        [uData.nev, uData.cim, uData.szuletesiDatum]);
+        return {...uData, id: result.insertId}
+    } else{
+        return {...uData, id: uId}
+    }
+}
+
+export const findUsersBySearch = async (search: string) =>{
+    if (!search){
+        const [rows] = await pool.query<mysql.RowDataPacket[]>("SELECT * FROM users");
+        return rows;
+    }
+    const [rows] = await pool.query<mysql.RowDataPacket[]>("SELECT * FROM users WHERE cim like ?", [`%${search}%`]);
     return rows;
 }

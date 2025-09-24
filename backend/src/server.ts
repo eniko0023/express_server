@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
-import { json } from "stream/consumers";
 import * as path from "node:path";
+import * as url from "node:url";
 import router from "./router.js";
 
 const PORT = 8000;
@@ -18,7 +18,7 @@ const staticFilesDir = path.join(__dirname, "..", "dist");
 
 // Cors problémákra - Csak fejlesztési időben: minden kérést engedélyezünk.
 server.use(cors());
-server.use(express.json());
+server.use(express.json()); // request-ben lévő json js-object-té konvertálódjon
 
 // Statikus állományok (a szerver csak küldi ezeket) küldése a kliens felé:
 server.use(express.static(staticFilesDir));

@@ -1,5 +1,6 @@
-import express, { response } from 'express';
-import { createUser, getUsers, removeUser, modifiedUser, getUserById } from './model.js';
+import express from 'express';
+
+import { createUser, getUsers, removeUser, modifiedUser, getUserById, modifiedFullUser, findUsersBySearch } from './model.js';
 
 export const getAll = async (req: express.Request, res: express.Response) => {
     try {
@@ -19,7 +20,7 @@ export const addUser = async (req: express.Request, res: express.Response) => {
         const user = await createUser(newUser);
         res.status(201).type("application/json").send(user);
     } catch (error) {
-        res.status(500).type("application/json").send({error: "Nem sikerült létrehozni az új felhasználót!"});
+        res.status(500).type("application/json").send({error: "Nem sikerült létrehozni az újn felhasználót!"});
     }
 }
 
@@ -34,34 +35,49 @@ export const deleteUser = async (req: express.Request, res: express.Response) =>
 export const updateUser = async (req: express.Request, res: express.Response) => {
     const updateUser = req.body;
     const id = parseInt(req.params.id!, 10);
+    let response;
     try{
         const result = await modifiedUser(id, updateUser);
-        const response = result ? {message: "Successful operation!"} : {message: "Failed operation!"};
+        response = result ? {message: "Successful operation"} : {error: "Failed operation"}
         res.status(201).type("application/json").send(response);
     }catch(error) {
         res.status(500).type("application/json").send(response);
     }
 }
 
-export const getCurrentUser = async (req: express.Request, res: express.Response) =>{
-    const id = parseInt(req.params.id!, 10)
+export const getCurrentUser = async (req: express.Request, res: express.Response) => {
+    const id = parseInt(req.params.id!, 10);
     try{
-        const users = await getUserById(id);
-        if ( users.length === 0){
-               res.status(400).type("application/json").send({error: "A felhasználó nem található"});
-        }
-     res.status(200).type("application/json").send(users);
-    } catch(error){
-        res.status(500).type("application/json").send({error: "Szerverhiba"})
+        const user = await getUserById(id);
+        // Ha null érkezik, akkor nincs olyan felhasználó...
+        if (!user) return res.status(404).type("application/json").send({error: "A felhasználó nem található."})
+
+        return res.status(200).type("application/json").send(user);
+    } catch(error) {
+        res.status(500).type("application/json").send({error: "Szerverhiba."})
     }
 }
 
-export const updateFullUser = async (req: express.Request, res: express.Response) =>{
+export const updateFullUser = async (req: express.Request, res:express.Response) => {
     const data = req.body;
+    console.log(data) // a req.body tartalma objektumként jelenik meg!!!!!!
+
     const id = Number(req.params.id);
     try{
-        
-    } catch(error){
+        const result = await modifiedFullUser(id, data);
+        return res.status(201).type("application/json").send({message: result});
+    } catch(error) {
+        return res.status(500).type("application/json").send({message: "Internal server error!"});
+    }
+}
 
+export const searchUsers = async (req: express.Request, res: express.Response) =>{
+    try{
+        const search = req.query.search ? String(req.query.search) : "";
+        console.log(req.query)
+        const users = await findUsersBySearch(search);
+        return res.send(users)
+    } catch(error){
+        return res.status(500).type("application/json").send({message: "Internal server error!"});
     }
 }
